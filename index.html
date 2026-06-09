@@ -594,8 +594,16 @@
 
     // ── Caption ──
     captionInput.addEventListener('input', () => {
-      captionDisplay.textContent = captionInput.value.trim();
-    });
+  captionDisplay.textContent = captionInput.value.trim();
+});
+
+// Pressing Enter hides the keyboard and keeps the text
+captionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();      // Prevents any form submission or line break
+    captionInput.blur();     // Dismisses the keyboard
+  }
+});
 
     // ── Pixel processing ──
     function applyAdjustments(ctx, w, h) {
@@ -705,28 +713,26 @@
     const LOAD_ICON = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
 
     downloadBtn.addEventListener('click', async () => {
-      if (!originalImage) return;
-      downloadBtn.disabled = true;
-      downloadBtn.innerHTML = `${LOAD_ICON} Procesando…`;
-      try {
-        buildExportCanvas();
-        exportCanvas.toBlob(async (blob) => {
-          const fileName = `polaroid-${Date.now()}.png`;
-          if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type:'image/png' })] })) {
-            try {
-              await navigator.share({ files: [new File([blob], fileName, { type:'image/png' })], title: 'Mi Polaroid' });
-              showToast('Guardado — añádelo a la galería desde la hoja de compartir');
-            } catch(e) { if (e.name !== 'AbortError') fallbackDownload(blob, fileName); }
-          } else { fallbackDownload(blob, fileName); }
-          downloadBtn.disabled = false;
-          downloadBtn.innerHTML = `${SAVE_ICON} Guardar en galería`;
-        }, 'image/png');
-      } catch(err) {
-        downloadBtn.disabled = false;
-        downloadBtn.innerHTML = `${SAVE_ICON} Guardar en galería`;
-        showToast('Algo salió mal. Intenta de nuevo.');
-      }
-    });
+  if (!originalImage) return;
+  downloadBtn.disabled = true;
+  downloadBtn.innerHTML = `${LOAD_ICON} Procesando…`;
+  try {
+    buildExportCanvas();
+    exportCanvas.toBlob(async (blob) => {
+      const fileName = `polaroid-${Date.now()}.png`;
+      // Always use fallback download (no share sheet)
+      fallbackDownload(blob, fileName);
+      downloadBtn.disabled = false;
+      downloadBtn.innerHTML = `${SAVE_ICON} Guardar en galería`;
+      // Show a more accurate message
+      showToast('Imagen guardada en la carpeta Descargas');
+    }, 'image/png');
+  } catch(err) {
+    downloadBtn.disabled = false;
+    downloadBtn.innerHTML = `${SAVE_ICON} Guardar en galería`;
+    showToast('Error al guardar. Intenta de nuevo.');
+  }
+});
 
     function fallbackDownload(blob, fileName) {
       const url = URL.createObjectURL(blob);
